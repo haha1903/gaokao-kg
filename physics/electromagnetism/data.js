@@ -16,7 +16,7 @@ window.KG_LAYERS = [
   { id:"induction", label:"电磁感应·统一", color:"#a78bfa", desc:"磁通变化生电,电与磁的统一" },
 ];
 
-const SRC = [{ label:"静态总览图 · 六维度架构", href:"_static-base/物理-01-电磁学.html" }];
+const SRC = [{ label:"静态总览图 · 六维度架构", href:"assets/overview.svg" }];
 
 window.KG_NODES = [
 
