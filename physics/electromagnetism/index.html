@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电磁学知识图谱</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  svg: { fontCache: 'global' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg:#020617; --panel:#0a0f1e; --panel2:#0d1424; --border:#1e293b;
+    --ink:#e2e8f0; --dim:#94a3b8; --faint:#475569;
+    --basic:#5eead4; --electric:#38bdf8; --magnetic:#fb7185; --induction:#a78bfa;
+    --accent:#f472b6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'JetBrains Mono',monospace; height:100vh; overflow:hidden; }
+
+  /* ---- top bar ---- */
+  header { display:flex; align-items:center; gap:16px; padding:14px 22px; border-bottom:1px solid var(--border); background:var(--panel); }
+  header h1 { font-size:16px; font-weight:700; display:flex; align-items:center; gap:9px; white-space:nowrap; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .tabs { display:flex; gap:6px; }
+  .tab { font-family:inherit; font-size:12px; font-weight:600; color:var(--dim); background:transparent; border:1px solid var(--border); border-radius:7px; padding:6px 14px; cursor:pointer; transition:.15s; }
+  .tab:hover { border-color:var(--accent); color:var(--ink); }
+  .tab.active { background:rgba(244,114,182,.15); color:var(--accent); border-color:var(--accent); }
+  .search { flex:1; max-width:320px; }
+  .search input { width:100%; font-family:inherit; font-size:12px; color:var(--ink); background:var(--panel2); border:1px solid var(--border); border-radius:7px; padding:7px 12px; }
+  .search input:focus { outline:none; border-color:var(--accent); }
+  .toolbtn { font-family:inherit; font-size:11px; color:var(--dim); background:var(--panel2); border:1px solid var(--border); border-radius:7px; padding:6px 11px; cursor:pointer; }
+  .toolbtn:hover { color:var(--ink); border-color:var(--accent); }
+  .ann-count { color:var(--accent); font-weight:700; }
+
+  /* ---- main ---- */
+  main { height:calc(100vh - 57px); position:relative; }
+  .view { display:none; height:100%; overflow:auto; }
+  .view.active { display:block; }
+
+  /* ---- guided view ---- */
+  #view-guided { padding:28px 32px 60px; max-width:1100px; margin:0 auto; }
+  .intro { color:var(--dim); font-size:13px; line-height:1.7; margin-bottom:22px; border-left:2px solid var(--accent); padding-left:14px; }
+  .overview { margin:2px 0 28px; border:1px solid var(--border); border-radius:10px; background:var(--panel); padding:14px; }
+  .overview img { width:100%; display:block; border-radius:6px; }
+  .overview .ov-cap { color:var(--faint); font-size:11px; margin-top:9px; line-height:1.6; }
+  .layer-group { margin-bottom:30px; }
+  .layer-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .layer-badge { font-size:12px; font-weight:700; padding:3px 12px; border-radius:6px; }
+  .layer-desc { color:var(--faint); font-size:11px; }
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+  .mini-card { border:1px solid var(--border); border-left-width:3px; border-radius:9px; padding:14px 16px; background:var(--panel); cursor:pointer; transition:.15s; }
+  .mini-card:hover { background:var(--panel2); transform:translateY(-2px); }
+  .mini-card h3 { font-size:13px; margin-bottom:6px; }
+  .mini-card p { color:var(--dim); font-size:11px; line-height:1.6; }
+  .cov { font-size:9px; padding:1px 7px; border-radius:5px; display:inline-block; margin-top:8px; }
+  .cov.ok { background:rgba(52,211,153,.15); color:#34d399; }
+  .cov.partial { background:rgba(251,191,36,.15); color:#fbbf24; }
+
+  /* ---- graph view ---- */
+  #view-graph { overflow:hidden; }
+  #graph-svg { width:100%; height:100%; display:block; cursor:grab; }
+  #graph-svg:active { cursor:grabbing; }
+  .g-edge { fill:none; stroke:var(--faint); stroke-width:1.2; opacity:.32; transition:stroke .25s, opacity .25s, stroke-width .25s; }
+  .g-edge.hot { stroke:var(--accent); stroke-width:2.2; opacity:.95; filter:drop-shadow(0 0 4px rgba(244,114,182,.6)); }
+  .g-edge-label { fill:var(--faint); font-size:8px; pointer-events:none; opacity:0; transition:opacity .2s; }
+  .g-edge-label.hot { opacity:1; fill:var(--accent); }
+  .g-node { cursor:grab; }
+  .g-node:active { cursor:grabbing; }
+  .g-node text { fill:var(--ink); font-size:9.5px; pointer-events:none; text-shadow:0 1px 4px #000, 0 0 2px #000; transition:opacity .2s, fill .2s; }
+  .g-node:hover text { fill:#fff; }
+  .g-node > :first-child { transition:filter .2s; }
+  .g-node.dim { opacity:.16; transition:opacity .3s; }
+  .graph-hint { position:absolute; bottom:14px; left:18px; color:var(--faint); font-size:10px; }
+  .graph-legend { position:absolute; top:14px; right:18px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:10px; }
+  .graph-legend div { display:flex; align-items:center; gap:7px; margin:3px 0; color:var(--dim); }
+  .graph-legend .sw { width:9px; height:9px; border-radius:50%; }
+
+  /* ---- card drawer ---- */
+  #drawer { position:fixed; top:57px; right:0; width:min(560px,92vw); height:calc(100vh - 57px); background:var(--panel); border-left:1px solid var(--border); transform:translateX(100%); transition:transform .22s; overflow-y:auto; z-index:40; box-shadow:-20px 0 40px rgba(0,0,0,.4); }
+  #drawer.open { transform:translateX(0); }
+  .drawer-head { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--border); padding:18px 22px 14px; z-index:2; }
+  .drawer-head .layer-badge { margin-bottom:8px; }
+  .drawer-head h2 { font-size:18px; line-height:1.3; }
+  .drawer-head .oneline { color:var(--dim); font-size:12px; margin-top:8px; line-height:1.6; }
+  .drawer-close { position:absolute; top:16px; right:18px; background:none; border:none; color:var(--dim); font-size:20px; cursor:pointer; }
+  .drawer-close:hover { color:var(--ink); }
+  .drawer-body { padding:20px 22px 60px; }
+  .drawer-body h4 { font-size:13px; color:var(--accent); margin:18px 0 8px; }
+  .drawer-body p { font-size:12.5px; line-height:1.75; color:var(--ink); margin-bottom:10px; }
+  .drawer-body ul { margin:0 0 12px 18px; }
+  .drawer-body li { font-size:12px; line-height:1.7; color:var(--ink); margin-bottom:4px; }
+  .drawer-body table { width:100%; border-collapse:collapse; margin:10px 0; font-size:11px; }
+  .drawer-body th { background:var(--panel2); color:var(--accent); text-align:left; padding:7px 9px; border:1px solid var(--border); font-weight:600; }
+  .drawer-body td { padding:7px 9px; border:1px solid var(--border); color:var(--ink); vertical-align:top; }
+  .drawer-body code { background:var(--panel2); padding:1px 6px; border-radius:4px; font-size:11px; color:var(--electric); }
+  .drawer-body blockquote { border-left:2px solid var(--accent); padding:6px 12px; margin:10px 0; color:var(--dim); font-size:11.5px; font-style:italic; }
+  .drawer-body mjx-container { overflow-x:auto; overflow-y:hidden; max-width:100%; }
+  .sec-title { font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:1px; margin:22px 0 8px; border-top:1px solid var(--border); padding-top:14px; }
+  .links a { display:block; color:var(--electric); font-size:11.5px; text-decoration:none; padding:5px 0; }
+  .links a:hover { color:var(--accent); }
+  .links a::before { content:"\2197 "; color:var(--faint); }
+  .edges-wrap { display:flex; flex-wrap:wrap; gap:7px; }
+  .edge-chip { font-size:11px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; color:var(--ink); }
+  .edge-chip:hover { border-color:var(--accent); }
+  .edge-chip .etype { color:var(--faint); margin-right:5px; }
+
+  /* ---- annotation ---- */
+  #ann-toolbar { position:fixed; display:none; z-index:60; background:var(--panel2); border:1px solid var(--accent); border-radius:9px; padding:5px; gap:3px; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+  #ann-toolbar.show { display:flex; }
+  #ann-toolbar button { font-family:inherit; font-size:11px; color:var(--ink); background:transparent; border:none; border-radius:5px; padding:5px 9px; cursor:pointer; }
+  #ann-toolbar button:hover { background:var(--panel); }
+  .hl { background:rgba(251,191,36,.28); border-bottom:1px dashed #fbbf24; cursor:help; }
+  .hl.q { background:rgba(251,146,60,.28); border-bottom:1px dashed #fb923c; }
+  #ann-panel { position:fixed; top:57px; right:0; width:min(420px,90vw); height:calc(100vh - 57px); background:var(--panel); border-left:1px solid var(--border); transform:translateX(100%); transition:transform .22s; z-index:45; overflow-y:auto; }
+  #ann-panel.open { transform:translateX(0); }
+  #ann-panel .drawer-head h2 { font-size:15px; }
+  .ann-item { border:1px solid var(--border); border-left-width:3px; border-radius:8px; padding:11px 13px; margin:10px 22px; background:var(--panel2); }
+  .ann-item.note { border-left-color:#fbbf24; }
+  .ann-item.q { border-left-color:#fb923c; }
+  .ann-item .quote { font-size:11px; color:var(--dim); font-style:italic; border-left:2px solid var(--faint); padding-left:8px; margin-bottom:6px; }
+  .ann-item .txt { font-size:12px; color:var(--ink); }
+  .ann-item .meta { font-size:9.5px; color:var(--faint); margin-top:6px; display:flex; justify-content:space-between; }
+  .ann-item .del { color:#fb923c; cursor:pointer; }
+  .ann-empty { color:var(--faint); font-size:12px; padding:20px 22px; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot"></span>电磁学知识图谱</h1>
+  <div class="tabs">
+    <button class="tab active" data-view="guided">📖 引导</button>
+    <button class="tab" data-view="graph">🕸 图谱</button>
+  </div>
+  <div class="search"><input id="search" placeholder="搜索知识点…"></div>
+  <button class="toolbtn" id="btn-ann">我的批注 <span class="ann-count" id="ann-n">0</span></button>
+  <button class="toolbtn" id="btn-export">导出批注</button>
+</header>
+
+<main>
+  <div class="view active" id="view-guided"></div>
+  <div class="view" id="view-graph">
+    <svg id="graph-svg"></svg>
+    <div class="graph-legend" id="graph-legend"></div>
+    <div class="graph-hint">拖动画布平移 · 点节点看卡片 + 高亮串联关系 · 滚轮缩放 · 角标 <span style="color:#fbbf24">●</span> 冲满分拓展</div>
+  </div>
+</main>
+
+<!-- concept card drawer -->
+<div id="drawer">
+  <div class="drawer-head">
+    <button class="drawer-close" id="drawer-close">✕</button>
+    <span class="layer-badge" id="d-badge"></span><span id="d-tags"></span>
+    <h2 id="d-title"></h2>
+    <div class="oneline" id="d-oneline"></div>
+  </div>
+  <div class="drawer-body" id="d-body"></div>
+</div>
+
+<!-- annotation floating toolbar -->
+<div id="ann-toolbar">
+  <button data-act="note">✏️ 批注</button>
+  <button data-act="q">❓ 存疑/提问</button>
+  <button data-act="hl">🖊 高亮</button>
+</div>
+
+<!-- annotation panel -->
+<div id="ann-panel">
+  <div class="drawer-head">
+    <button class="drawer-close" id="ann-close">✕</button>
+    <h2>我的批注</h2>
+    <div class="oneline">选中卡片里的文字 → 批注 / 存疑 / 高亮。全部存在本地浏览器,可导出给老师合并回文档。</div>
+  </div>
+  <div id="ann-list"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const NODES = window.KG_NODES;
+  const LAYERS = window.KG_LAYERS;
+  const byId = Object.fromEntries(NODES.map(n=>[n.id,n]));
+  const layerColor = Object.fromEntries(LAYERS.map(l=>[l.id,l.color]));
+
+  function typeset(el){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(()=>{}); }
+
+  // ============ view switching ============
+  const tabs = document.querySelectorAll('.tab');
+  const views = { guided:document.getElementById('view-guided'), graph:document.getElementById('view-graph') };
+  let graphInited = false;
+  tabs.forEach(t=>t.onclick=()=>{
+    tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    Object.values(views).forEach(v=>v.classList.remove('active'));
+    views[t.dataset.view].classList.add('active');
+    if(t.dataset.view==='graph' && !graphInited){ initGraph(); graphInited=true; }
+  });
+
+  // ============ guided view ============
+  function renderGuided(){
+    const el = views.guided;
+    let html = `<div class="intro">这是把<b>电磁学</b>全部知识组织起来的学习站。<b>顺着下面的分层读</b>(基本概念 → 电场 → 磁场 → 电磁感应)可以入门;想看知识点之间的<b>推导与串联关系</b>,切到 <b>🕸 图谱</b>;点任意卡片展开深度内容(含公式),选中文字可就地批注/存疑。角标 <span style="color:#34d399">🎯 主干</span> = 高考必考,<span style="color:#fbbf24">⭐ 拓展</span> = 冲满分拓展。</div>
+      <div class="overview">
+        <img src="_static-base/物理-01-电磁学.svg" alt="电磁学六维度总览">
+        <div class="ov-cap">六维度总览:研究任何一种场都走同一套范式 —— 源 → 场量 → 力 → 运动 → 能量 → 应用。下面卡片是每个知识点的深度展开。</div>
+      </div>`;
+    LAYERS.forEach(layer=>{
+      const items = NODES.filter(n=>n.layer===layer.id);
+      if(!items.length) return;
+      html += `<div class="layer-group">
+        <div class="layer-head">
+          <span class="layer-badge" style="background:${hex(layer.color,.18)};color:${layer.color}">${layer.label}</span>
+          <span class="layer-desc">${layer.desc}</span>
+        </div>
+        <div class="card-grid">`;
+      items.forEach(n=>{
+        let tags='';
+        if(n.coverage) tags += `<span class="cov ${n.coverage}">${n.coverage==='ok'?'🎯 高考主干':'⭐ 冲满分拓展'}</span>`;
+        html += `<div class="mini-card" style="border-left-color:${layer.color}" data-id="${n.id}">
+          <h3>${n.title}</h3>
+          <p>${n.oneLine}</p>
+          ${tags}
+        </div>`;
+      });
+      html += `</div></div>`;
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('.mini-card').forEach(c=>c.onclick=()=>openCard(c.dataset.id));
+    typeset(el);
+  }
+
+  // ============ concept card drawer ============
+  const drawer = document.getElementById('drawer');
+  function openCard(id){
+    const n = byId[id]; if(!n) return;
+    if(drawer.classList.contains('open') && document.getElementById('d-body').dataset.nodeId===id){
+      drawer.classList.remove('open');
+      gNodes.forEach(g=>g._grp&&g._grp.classList.remove('dim'));
+      gEdges.forEach(e=>{ if(e._path)e._path.classList.remove('hot'); if(e._lbl)e._lbl.classList.remove('hot'); });
+      return;
+    }
+    const lc = layerColor[n.layer];
+    const badge = document.getElementById('d-badge');
+    const layer = LAYERS.find(l=>l.id===n.layer);
+    badge.textContent = layer.label; badge.style.background=hex(lc,.18); badge.style.color=lc;
+    const covMap={ok:'🎯 高考主干',partial:'⭐ 冲满分拓展'};
+    let tags='';
+    if(n.coverage) tags += `<span class="cov ${n.coverage}">${covMap[n.coverage]}</span>`;
+    document.getElementById('d-tags').innerHTML = tags;
+    document.getElementById('d-title').textContent = n.title;
+    document.getElementById('d-oneline').textContent = n.oneLine;
+    let body = n.body;
+    if(n.edges && n.edges.length){
+      body += `<div class="sec-title">关联 / 串联</div><div class="edges-wrap">`;
+      n.edges.forEach(e=>{ const t=byId[e.to]; if(t) body += `<span class="edge-chip" data-goto="${e.to}"><span class="etype">${e.type}</span>${t.title}</span>`; });
+      body += `</div>`;
+    }
+    if(n.sources && n.sources.length){
+      body += `<div class="sec-title">来源 / 深挖</div><div class="links">`;
+      n.sources.forEach(s=> body += `<a href="${s.href}" target="_blank">${s.label}</a>`);
+      body += `</div>`;
+    }
+    const db = document.getElementById('d-body');
+    db.innerHTML = body; db.dataset.nodeId = id;
+    db.querySelectorAll('.edge-chip').forEach(c=>c.onclick=()=>openCard(c.dataset.goto));
+    typeset(db);
+    applyAnnotations(id);
+    drawer.classList.add('open');
+  }
+  document.getElementById('drawer-close').onclick=()=>drawer.classList.remove('open');
+
+  // ============ force-directed graph (live simulation) ============
+  const svg = document.getElementById('graph-svg');
+  const SVGNS='http://www.w3.org/2000/svg';
+  let gNodes=[], gEdges=[], gView={x:0,y:0,k:1};
+  let W=0,H=0, gAlpha=1, gTime=0, gRAF=null, dragN=null, hoverId=null;
+
+  function lighten(h,amt){ const n=parseInt(h.slice(1),16); let r=n>>16&255,g=n>>8&255,b=n&255; r=Math.round(r+(255-r)*amt);g=Math.round(g+(255-g)*amt);b=Math.round(b+(255-b)*amt); return `rgb(${r},${g},${b})`; }
+
+  function initGraph(){
+    W=svg.clientWidth; H=svg.clientHeight;
+    gNodes = NODES.map((n,i)=>({ id:n.id, node:n,
+      r: 10,
+      x:W/2+Math.cos(i/NODES.length*6.28)*230+(i*37%80-40),
+      y:H/2+Math.sin(i/NODES.length*6.28)*230+(i*53%80-40),
+      vx:0, vy:0, ph:i*1.7, ox:0, oy:0 }));
+    const pos=Object.fromEntries(gNodes.map(g=>[g.id,g]));
+    gEdges=[];
+    NODES.forEach(n=>(n.edges||[]).forEach(e=>{ if(pos[e.to]) gEdges.push({s:pos[n.id],t:pos[e.to],type:e.type}); }));
+    document.getElementById('graph-legend').innerHTML = LAYERS.map(l=>`<div><span class="sw" style="background:${l.color}"></span>${l.label}</div>`).join('');
+    for(let i=0;i<140;i++) physics();
+    buildDOM();
+    enableInteract();
+    gAlpha=0.3;
+    if(!gRAF) loop();
+  }
+
+  function physics(){
+    for(let i=0;i<gNodes.length;i++)for(let j=i+1;j<gNodes.length;j++){
+      const a=gNodes[i],b=gNodes[j]; let dx=a.x-b.x,dy=a.y-b.y; let d2=dx*dx+dy*dy||1; let d=Math.sqrt(d2);
+      let f=22000/d2;
+      const minD=a.r+b.r+30; if(d<minD) f+=(minD-d)*0.85;
+      dx/=d;dy/=d; a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;
+    }
+    gEdges.forEach(e=>{ let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y; let d=Math.sqrt(dx*dx+dy*dy)||1; let f=(d-118)*0.028; dx/=d;dy/=d; e.s.vx+=dx*f;e.s.vy+=dy*f;e.t.vx-=dx*f;e.t.vy-=dy*f; });
+    gNodes.forEach(n=>{
+      if(n===dragN){ n.vx=0;n.vy=0; return; }
+      n.vx+=(W/2-n.x)*0.0035; n.vy+=(H/2-n.y)*0.0035;
+      n.vx*=0.82; n.vy*=0.82;
+      n.x+=n.vx*0.55; n.y+=n.vy*0.55;
+    });
+  }
+
+  function loop(){
+    gTime+=0.016;
+    if(gAlpha>0.004 || dragN){ physics(); gAlpha = dragN?Math.max(gAlpha,0.28):gAlpha*0.985; }
+    render();
+    gRAF=requestAnimationFrame(loop);
+  }
+
+  function render(){
+    gNodes.forEach(n=>{ const a = n===dragN?0:3; n.ox=n.x+Math.sin(gTime*0.7+n.ph)*a; n.oy=n.y+Math.cos(gTime*0.62+n.ph)*a; });
+    gEdges.forEach(e=>{
+      const x1=e.s.ox,y1=e.s.oy,x2=e.t.ox,y2=e.t.oy;
+      const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1;
+      const cx=mx-dy*0.12, cy=my+dx*0.12;
+      e._path.setAttribute('d',`M${x1.toFixed(1)},${y1.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`);
+      e._lbl.setAttribute('x',cx); e._lbl.setAttribute('y',cy);
+    });
+    gNodes.forEach(n=>{ n._grp.setAttribute('transform',`translate(${n.ox.toFixed(1)},${n.oy.toFixed(1)})`); });
+  }
+
+  function buildDOM(){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const defs=document.createElementNS(SVGNS,'defs');
+    LAYERS.forEach(l=>{
+      const rg=document.createElementNS(SVGNS,'radialGradient'); rg.id='grad-'+l.id;
+      rg.setAttribute('cx','35%');rg.setAttribute('cy','28%');rg.setAttribute('r','75%');
+      const s1=document.createElementNS(SVGNS,'stop'); s1.setAttribute('offset','0%'); s1.setAttribute('stop-color',lighten(l.color,.6));
+      const s2=document.createElementNS(SVGNS,'stop'); s2.setAttribute('offset','60%'); s2.setAttribute('stop-color',l.color);
+      const s3=document.createElementNS(SVGNS,'stop'); s3.setAttribute('offset','100%'); s3.setAttribute('stop-color',l.color); s3.setAttribute('stop-opacity','.85');
+      rg.appendChild(s1);rg.appendChild(s2);rg.appendChild(s3); defs.appendChild(rg);
+    });
+    const flt=document.createElementNS(SVGNS,'filter'); flt.id='nodeGlow';
+    flt.setAttribute('x','-70%');flt.setAttribute('y','-70%');flt.setAttribute('width','240%');flt.setAttribute('height','240%');
+    const blur=document.createElementNS(SVGNS,'feGaussianBlur'); blur.setAttribute('in','SourceGraphic'); blur.setAttribute('stdDeviation','3.2'); blur.setAttribute('result','b');
+    const merge=document.createElementNS(SVGNS,'feMerge');
+    const m1=document.createElementNS(SVGNS,'feMergeNode');m1.setAttribute('in','b');
+    const m2=document.createElementNS(SVGNS,'feMergeNode');m2.setAttribute('in','SourceGraphic');
+    merge.appendChild(m1);merge.appendChild(m2); flt.appendChild(blur);flt.appendChild(merge); defs.appendChild(flt);
+    svg.appendChild(defs);
+
+    const root=document.createElementNS(SVGNS,'g'); root.id='g-root'; svg.appendChild(root);
+    const eLayer=document.createElementNS(SVGNS,'g'); root.appendChild(eLayer);
+    const nLayer=document.createElementNS(SVGNS,'g'); root.appendChild(nLayer);
+    gEdges.forEach(e=>{
+      const p=document.createElementNS(SVGNS,'path'); p.setAttribute('class','g-edge'); e._path=p; eLayer.appendChild(p);
+      const lbl=document.createElementNS(SVGNS,'text'); lbl.setAttribute('class','g-edge-label'); lbl.textContent=e.type; e._lbl=lbl; eLayer.appendChild(lbl);
+    });
+    gNodes.forEach(g=>{
+      const grp=document.createElementNS(SVGNS,'g'); grp.setAttribute('class','g-node');
+      const col=layerColor[g.node.layer]; const r=g.r;
+      const shape=document.createElementNS(SVGNS,'circle'); shape.setAttribute('r',r);
+      shape.setAttribute('fill','url(#grad-'+g.node.layer+')'); shape.setAttribute('stroke',lighten(col,.25)); shape.setAttribute('stroke-width',1.3);
+      shape.setAttribute('filter','url(#nodeGlow)');
+      grp.appendChild(shape);
+      if(g.node.coverage==='partial'){
+        const b=document.createElementNS(SVGNS,'circle'); b.setAttribute('cx',r-1);b.setAttribute('cy',-r+1);b.setAttribute('r',3.6);
+        b.setAttribute('fill','#fbbf24'); b.setAttribute('stroke','#020617');b.setAttribute('stroke-width',1); grp.appendChild(b);
+      }
+      const t=document.createElementNS(SVGNS,'text'); t.setAttribute('x',r+6); t.setAttribute('y',3.5); t.textContent=shortTitle(g.node.title); grp.appendChild(t);
+      g._grp=grp; nLayer.appendChild(grp);
+    });
+    applyTransform();
+  }
+
+  function highlightNeighbors(id){
+    const nb=new Set([id]); gEdges.forEach(e=>{ if(e.s.id===id)nb.add(e.t.id); if(e.t.id===id)nb.add(e.s.id); });
+    gNodes.forEach(g=>g._grp.classList.toggle('dim',!nb.has(g.id)));
+    gEdges.forEach(e=>{ const hot=e.s.id===id||e.t.id===id; e._path.classList.toggle('hot',hot); e._lbl.classList.toggle('hot',hot); });
+  }
+  function clearHighlight(){ gNodes.forEach(g=>g._grp&&g._grp.classList.remove('dim')); gEdges.forEach(e=>{ e._path&&e._path.classList.remove('hot'); e._lbl&&e._lbl.classList.remove('hot'); }); }
+
+  function screenToGraph(cx,cy){ const rc=svg.getBoundingClientRect(); return { x:(cx-rc.left-gView.x)/gView.k, y:(cy-rc.top-gView.y)/gView.k }; }
+
+  function enableInteract(){
+    let mode=null, sx=0, sy=0, moved=0, downNode=null;
+    svg.addEventListener('mousedown',e=>{
+      const ng=e.target.closest('.g-node'); sx=e.clientX; sy=e.clientY; moved=0;
+      if(ng){ downNode=gNodes.find(g=>g._grp===ng)||null; dragN=downNode; mode='node'; gAlpha=Math.max(gAlpha,0.5); }
+      else { mode='pan'; }
+    });
+    window.addEventListener('mousemove',e=>{
+      if(!mode)return; const dx=e.clientX-sx, dy=e.clientY-sy; moved+=Math.abs(dx)+Math.abs(dy);
+      if(mode==='pan'){ gView.x+=dx; gView.y+=dy; sx=e.clientX;sy=e.clientY; applyTransform(); }
+      else if(mode==='node'&&dragN){ const p=screenToGraph(e.clientX,e.clientY); dragN.x=p.x; dragN.y=p.y; gAlpha=Math.max(gAlpha,0.5); }
+    });
+    window.addEventListener('mouseup',()=>{
+      if(mode==='node'&&moved<5&&downNode){ highlightNeighbors(downNode.id); openCard(downNode.id); }
+      dragN=null; mode=null; downNode=null;
+    });
+    svg.addEventListener('mousemove',e=>{ if(dragN)return; const ng=e.target.closest('.g-node'); if(ng){ const g=gNodes.find(x=>x._grp===ng); if(g&&g.id!==hoverId){ hoverId=g.id; highlightNeighbors(g.id); } } });
+    svg.addEventListener('click',e=>{ if(!e.target.closest('.g-node')){ clearHighlight(); hoverId=null; } });
+    svg.addEventListener('wheel',e=>{ e.preventDefault(); const f=e.deltaY<0?1.1:.9; gView.k=Math.max(.3,Math.min(2.6,gView.k*f)); applyTransform(); },{passive:false});
+  }
+  function applyTransform(){ const r=document.getElementById('g-root'); if(r) r.setAttribute('transform',`translate(${gView.x},${gView.y}) scale(${gView.k})`); }
+
+  // ============ annotations ============
+  const AKEY='em-kg-annotations';
+  let annotations = JSON.parse(localStorage.getItem(AKEY)||'[]');
+  function saveAnn(){ localStorage.setItem(AKEY,JSON.stringify(annotations)); updateAnnCount(); }
+  function updateAnnCount(){ document.getElementById('ann-n').textContent=annotations.length; }
+
+  const toolbar=document.getElementById('ann-toolbar');
+  let pendingSel=null;
+  document.getElementById('d-body').addEventListener('mouseup',()=>{
+    const sel=window.getSelection(); const txt=sel.toString().trim();
+    if(txt.length<2){ toolbar.classList.remove('show'); return; }
+    const range=sel.getRangeAt(0); const rect=range.getBoundingClientRect();
+    pendingSel={ text:txt, nodeId:document.getElementById('d-body').dataset.nodeId };
+    toolbar.style.left=Math.max(8,rect.left+rect.width/2-70)+'px';
+    toolbar.style.top=(rect.top-46)+'px';
+    toolbar.classList.add('show');
+  });
+  toolbar.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    if(!pendingSel)return; const act=b.dataset.act;
+    let note='';
+    if(act==='note'||act==='q'){ note=prompt(act==='q'?'你的疑问 / 存疑说明:':'你的批注:'); if(note===null){toolbar.classList.remove('show');return;} }
+    annotations.push({ id:Date.now(), nodeId:pendingSel.nodeId, quote:pendingSel.text, kind:act==='hl'?'hl':(act==='q'?'q':'note'), note, ts:new Date().toISOString() });
+    saveAnn(); toolbar.classList.remove('show'); window.getSelection().removeAllRanges();
+    applyAnnotations(pendingSel.nodeId); renderAnnList();
+  });
+  function applyAnnotations(nodeId){
+    const body=document.getElementById('d-body');
+    body.querySelectorAll('.hl').forEach(s=>{ const p=s.parentNode; p.replaceChild(document.createTextNode(s.textContent),s); p.normalize(); });
+    annotations.filter(a=>a.nodeId===nodeId).forEach(a=>highlightText(body,a));
+  }
+  function highlightText(root,a){
+    const walk=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    let node; while(node=walk.nextNode()){
+      const i=node.nodeValue.indexOf(a.quote);
+      if(i>=0){ const range=document.createRange(); range.setStart(node,i); range.setEnd(node,i+a.quote.length);
+        const span=document.createElement('span'); span.className='hl'+(a.kind==='q'?' q':''); if(a.note)span.title=a.note;
+        try{ range.surroundContents(span); }catch(e){} break; }
+    }
+  }
+  const annPanel=document.getElementById('ann-panel');
+  document.getElementById('btn-ann').onclick=()=>{ renderAnnList(); annPanel.classList.add('open'); };
+  document.getElementById('ann-close').onclick=()=>annPanel.classList.remove('open');
+  function renderAnnList(){
+    const list=document.getElementById('ann-list');
+    if(!annotations.length){ list.innerHTML='<div class="ann-empty">还没有批注。<br><br>打开任意知识卡片,用鼠标选中一段文字,就会浮出批注工具条。你标的"存疑/提问"可以导出给老师读、并合并回源文档。</div>'; return; }
+    list.innerHTML=annotations.slice().reverse().map(a=>{
+      const n=byId[a.nodeId]; const kindC=a.kind==='q'?'q':'note';
+      return `<div class="ann-item ${kindC}">
+        <div class="quote">"${esc(a.quote)}"</div>
+        ${a.note?`<div class="txt">${a.kind==='q'?'❓ ':'✏️ '}${esc(a.note)}</div>`:'<div class="txt" style="color:#fbbf24">🖊 高亮</div>'}
+        <div class="meta"><span>${n?n.title:a.nodeId}</span><span class="del" data-del="${a.id}">删除</span></div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.del').forEach(d=>d.onclick=()=>{ annotations=annotations.filter(x=>x.id!=d.dataset.del); saveAnn(); renderAnnList(); const cur=document.getElementById('d-body').dataset.nodeId; if(cur)applyAnnotations(cur); });
+  }
+  document.getElementById('btn-export').onclick=()=>{
+    const blob=new Blob([JSON.stringify(annotations,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='em-kg-annotations.json'; a.click();
+  };
+
+  // ============ search ============
+  document.getElementById('search').oninput=e=>{
+    const q=e.target.value.toLowerCase().trim();
+    tabs.forEach(x=>x.classList.remove('active')); document.querySelector('[data-view=guided]').classList.add('active');
+    Object.values(views).forEach(v=>v.classList.remove('active')); views.guided.classList.add('active');
+    views.guided.querySelectorAll('.mini-card').forEach(c=>{
+      const n=byId[c.dataset.id]; const hit=!q||(n.title+n.oneLine+n.body).toLowerCase().includes(q);
+      c.style.display=hit?'':'none';
+    });
+    views.guided.querySelectorAll('.layer-group').forEach(g=>{
+      const any=[...g.querySelectorAll('.mini-card')].some(c=>c.style.display!=='none'); g.style.display=any?'':'none';
+    });
+  };
+
+  // ============ helpers ============
+  function hex(c,a){ const n=parseInt(c.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+  function shortTitle(t){ return t.length>14?t.slice(0,13)+'…':t; }
+  function esc(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // init
+  renderGuided(); updateAnnCount();
+})();
+</script>
+</body>
+</html>
