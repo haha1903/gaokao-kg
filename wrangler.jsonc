@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gaokao-kg",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gaokao-kg",
+      "database_id": "f032d230-148b-460f-b2ff-a55b5f96ade6",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gaokao-kg-preview",
+          "database_id": "19bc4658-7408-402e-8374-30f6bc6e2287",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
+}
