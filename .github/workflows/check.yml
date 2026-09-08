@@ -1,13 +1,19 @@
-name: Check site
+name: Check and deploy site
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
+# Keep production runs in order without interrupting an upload already in progress.
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,3 +24,34 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx wrangler pages functions build --outdir .wrangler/check
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://kg.changhai.me
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name gaokao-kg --branch main --commit-hash ${{ github.sha }}
+      - name: Verify deployed storage API
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          test -n "$DEPLOYMENT_URL"
+          curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 3 "$DEPLOYMENT_URL/api/health" > health.json
+          node --input-type=module -e 'import { readFileSync } from "node:fs"; import assert from "node:assert/strict"; assert.deepEqual(JSON.parse(readFileSync("health.json", "utf8")), { ok: true, storage: "D1" });'
+          printf 'Deployed and verified: %s\n' "$DEPLOYMENT_URL" >> "$GITHUB_STEP_SUMMARY"
