@@ -59,7 +59,11 @@ npx wrangler pages functions build --outdir .wrangler/check
 
 项目名 `gaokao-kg`，临时域名 [gaokao-kg.pages.dev](https://gaokao-kg.pages.dev/)，正式域名 `kg.changhai.me`。生产数据库 `gaokao-kg`；预览数据库 `gaokao-kg-preview`，两者相互独立。
 
-本项目采用 Wrangler Direct Upload。GitHub 保存源码和运行检查；**push 不会自动发布**。在可信开发环境运行 `npx wrangler login`，或设置仅具备所需权限的 `CLOUDFLARE_API_TOKEN`；不要把 Cloudflare 全局 API Key 提交到仓库或放进 GitHub Secrets。
+本项目通过 GitHub Actions 调用 Wrangler Direct Upload 自动发布：**推送或合并到 `main` → 测试、构建和 Functions 编译通过 → 部署 Cloudflare Pages → 检查新部署的 D1 API**。PR 只运行检查，其他分支不会更新正式站点；也可以在 Actions 的 `Check and deploy site` 中选择 `main` 手动触发。连续的生产运行会排队，避免同时上传。
+
+GitHub 的 `production` environment 仅允许 `main` 部署，配置了加密 Secret `CLOUDFLARE_API_TOKEN` 和变量 `CLOUDFLARE_ACCOUNT_ID`。部署 Token 仅有本站所在 Cloudflare 账户的 Pages Write 权限；不包含 DNS、D1 数据读写或账户管理权限。不要把 Cloudflare 全局 API Key 提交到仓库或放进 GitHub Secrets。
+
+代码和 Pages Functions 会自动发布。新增数据库迁移仍需在发布相关代码前，从有 D1 权限的可信开发环境执行 `npm run db:migrate`，并保持迁移向后兼容。需要手动部署时，运行 `npx wrangler login` 或设置所需权限的 `CLOUDFLARE_API_TOKEN` 后执行：
 
 ```sh
 npm run db:migrate
