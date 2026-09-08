@@ -27,7 +27,7 @@ window.MathJax = {
     <button class="tab" data-view="graph" aria-pressed="false">关系图谱</button>
   </div>
   <div class="search"><input id="search" type="search" placeholder="搜索知识点、公式…" aria-label="搜索知识点"></div>
-  <button class="toolbtn" id="btn-ann">我的批注 <span class="ann-count" id="ann-n">0</span></button>
+  <button class="toolbtn" id="btn-ann">我的批注 <span class="ann-count" id="ann-n">0</span><span class="sync-indicator" id="sync-indicator" aria-label="本地批注"></span></button>
   <button class="toolbtn" id="btn-export">导出批注</button>
 </header>
 
@@ -64,13 +64,34 @@ window.MathJax = {
   <div class="drawer-head">
     <button class="drawer-close" id="ann-close" aria-label="关闭批注">✕</button>
     <h2 id="ann-title">我的批注</h2>
-    <div class="oneline">选中卡片里的文字 → 批注 / 存疑 / 高亮。全部存在本地浏览器,可导出给老师合并回文档。</div>
+    <div class="oneline">选中文字，留下理解与疑问。批注与高亮可保存到云端，也可导出给老师。</div>
   </div>
+  <section class="sync-box" aria-labelledby="sync-title">
+    <div class="sync-heading"><h3 id="sync-title">云端笔记本</h3><span id="sync-status" role="status" aria-live="polite">本地批注</span></div>
+    <p id="sync-message">开启后，这台设备已有的批注会一起保存到云端。</p>
+    <button class="toolbtn" id="sync-now">开启云端同步</button>
+    <details id="sync-settings">
+      <summary>同步码与换设备</summary>
+      <p>同步码是这本笔记的钥匙，请私下保存。持有码的人可以读写批注；遗失后无法找回。</p>
+      <div id="current-code" hidden>
+        <label for="sync-code">当前同步码</label>
+        <input id="sync-code" type="password" readonly autocomplete="off" spellcheck="false">
+        <div class="sync-actions"><button class="toolbtn" id="copy-code">复制同步码</button><button class="toolbtn" id="show-code">显示</button></div>
+      </div>
+      <form id="restore-notebook">
+        <label for="restore-code">在这台设备恢复笔记</label>
+        <input id="restore-code" type="password" placeholder="粘贴以 kg1_ 开头的同步码" autocomplete="off" spellcheck="false" required>
+        <button class="toolbtn" type="submit">恢复云端笔记</button>
+        <p id="restore-message" role="status"></p>
+      </form>
+    </details>
+  </section>
   <div id="ann-list"></div>
 </div>
 
 <script src="data.js"></script>
-<script>
+<script type="module">
+import { AnnotationStore } from "../../assets/annotations.js";
 (function(){
   const NODES = window.KG_NODES;
   const theme = getComputedStyle(document.documentElement);
@@ -357,28 +378,102 @@ window.MathJax = {
   new ResizeObserver(()=>{ if(graphInited && svg.clientWidth && svg.clientHeight){ W=svg.clientWidth; H=svg.clientHeight; fitGraph(); } }).observe(svg);
 
   // ============ annotations ============
-  const AKEY='em-kg-annotations';
-  let annotations = JSON.parse(localStorage.getItem(AKEY)||'[]');
-  function saveAnn(){ localStorage.setItem(AKEY,JSON.stringify(annotations)); updateAnnCount(); }
+  let annotations = [];
+  let annotationStore;
+  const syncErrors = {
+    invalid_code: '同步码格式不正确，请复制完整的同步码。',
+    unknown_notebook: '没有找到这本云端笔记，请核对同步码。',
+    pending_changes: '当前笔记还有未上传的修改，请先完成同步再切换。',
+    state_changed: '笔记刚刚发生变化，请重新恢复。',
+    creation_limit: '暂时无法创建更多笔记本，请稍后重试。',
+    notebook_full: '笔记本已达到容量上限，请先导出备份。',
+    invalid_annotation: '有批注不符合格式或长度要求，请导出备份并删减后重试。',
+    body_too_large: '批注过长，请导出备份并删减后重试。'
+  };
+  function syncError(error){ return syncErrors[error] || '暂时无法连接云端。批注已保留在此设备，联网后会重试。'; }
+  function refreshAnnotations(state, status, error){
+    const changed=JSON.stringify(annotations)!==JSON.stringify(state.items);
+    annotations = state.items;
+    updateAnnCount();
+    if(changed){
+      renderAnnList();
+      const cur=document.getElementById('d-body').dataset.nodeId;
+      if(cur)applyAnnotations(cur);
+    }
+    const labels={local:'本地批注', syncing:'正在同步…', pending:'等待同步', synced:'已保存到云端'};
+    document.getElementById('sync-status').textContent=labels[status];
+    const indicator=document.getElementById('sync-indicator');
+    indicator.dataset.status=status; indicator.title=labels[status]; indicator.setAttribute('aria-label',labels[status]);
+    document.getElementById('sync-message').textContent=error ? syncError(error) : status==='local' ? '开启后，这台设备已有的批注会一起保存到云端。' : status==='synced' ? '换设备时，用同步码恢复同一本笔记。请先保存同步码。' : `批注已保留在此设备${state.queue.length ? `，还有 ${state.queue.length} 项修改等待上传` : ''}。`;
+    document.getElementById('sync-now').textContent=state.token ? '立即同步' : '开启云端同步';
+    document.getElementById('sync-now').disabled=status==='syncing';
+    document.getElementById('current-code').hidden=!state.token;
+    document.getElementById('sync-code').value=state.token || '';
+  }
+  function localError(){ alert('浏览器无法保存批注。请允许网站存储，或先导出已有批注后再继续。'); }
+  function initializeSync(){
+    try {
+      annotationStore=new AnnotationStore({onChange:refreshAnnotations});
+      annotationStore.emit();
+      void annotationStore.sync();
+    } catch {
+      document.getElementById('sync-status').textContent='浏览器存储不可用';
+      document.getElementById('sync-message').textContent='请允许网站存储后刷新页面。已有数据不会被覆盖。';
+      document.getElementById('sync-now').disabled=true;
+      return;
+    }
+    document.getElementById('sync-now').onclick=()=>{ try { void annotationStore.enable(); } catch { localError(); } };
+    document.getElementById('copy-code').onclick=async()=>{
+      try { await navigator.clipboard.writeText(annotationStore.read().token); document.getElementById('copy-code').textContent='已复制'; }
+      catch { document.getElementById('sync-code').type='text'; document.getElementById('sync-code').select(); document.getElementById('copy-code').textContent='请手动复制'; }
+    };
+    document.getElementById('show-code').onclick=()=>{
+      const field=document.getElementById('sync-code'); field.type=field.type==='password'?'text':'password';
+      document.getElementById('show-code').textContent=field.type==='password'?'显示':'隐藏';
+    };
+    document.getElementById('restore-notebook').onsubmit=async e=>{
+      e.preventDefault();
+      const code=document.getElementById('restore-code').value.trim();
+      const current=annotationStore.read().token;
+      if(current && current!==code && !confirm('将切换到另一本云端笔记。当前笔记仍保存在云端，请先保存当前同步码。继续吗？'))return;
+      const button=e.target.querySelector('button'); button.disabled=true;
+      const message=document.getElementById('restore-message'); message.textContent='正在恢复…';
+      try { await annotationStore.restore(code); message.textContent='已恢复云端笔记。'; document.getElementById('restore-code').value=''; }
+      catch(error){ message.textContent=syncError(error.message); }
+      finally { button.disabled=false; }
+    };
+    const syncVisible=()=>{ if(document.visibilityState==='visible')void annotationStore.sync(); };
+    window.addEventListener('online',syncVisible);
+    window.addEventListener('focus',syncVisible);
+    window.addEventListener('storage',e=>{ if(e.key==='em-kg-cloud-v1'){ annotationStore.emit(); syncVisible(); } });
+    document.addEventListener('visibilitychange',syncVisible);
+    setInterval(syncVisible,30000);
+  }
   function updateAnnCount(){ document.getElementById('ann-n').textContent=annotations.length; }
 
   const toolbar=document.getElementById('ann-toolbar');
   let pendingSel=null;
-  document.getElementById('d-body').addEventListener('mouseup',()=>{
-    const sel=window.getSelection(); const txt=sel.toString().trim();
+  function updateSelection(){
+    const sel=window.getSelection();
+    if(!sel.rangeCount || !document.getElementById('d-body').contains(sel.getRangeAt(0).commonAncestorContainer)){ toolbar.classList.remove('show'); return; }
+    const txt=sel.toString().trim();
     if(txt.length<2){ toolbar.classList.remove('show'); return; }
     const range=sel.getRangeAt(0); const rect=range.getBoundingClientRect();
     pendingSel={ text:txt, nodeId:document.getElementById('d-body').dataset.nodeId };
     toolbar.style.left=Math.max(8,Math.min(innerWidth-260,rect.left+rect.width/2-110))+'px';
     toolbar.style.top=Math.max(8,rect.top-52)+'px';
     toolbar.classList.add('show');
-  });
+  }
+  document.getElementById('d-body').addEventListener('mouseup',updateSelection);
+  document.addEventListener('selectionchange',updateSelection);
   toolbar.querySelectorAll('button').forEach(b=>b.onclick=()=>{
     if(!pendingSel)return; const act=b.dataset.act;
     let note='';
     if(act==='note'||act==='q'){ note=prompt(act==='q'?'你的疑问 / 存疑说明:':'你的批注:'); if(note===null){toolbar.classList.remove('show');return;} }
-    annotations.push({ id:Date.now(), nodeId:pendingSel.nodeId, quote:pendingSel.text, kind:act==='hl'?'hl':(act==='q'?'q':'note'), note, ts:new Date().toISOString() });
-    saveAnn(); toolbar.classList.remove('show'); window.getSelection().removeAllRanges();
+    if(pendingSel.text.length>4000 || note.length>8000){ alert('选中文字最多 4000 字，批注最多 8000 字。请分段记录。'); return; }
+    try { if(!annotationStore)throw new Error('storage_unavailable'); annotationStore.add({nodeId:pendingSel.nodeId, quote:pendingSel.text, kind:act, note}); }
+    catch { localError(); return; }
+    toolbar.classList.remove('show'); window.getSelection().removeAllRanges();
     applyAnnotations(pendingSel.nodeId); renderAnnList();
   });
   function applyAnnotations(nodeId){
@@ -405,15 +500,15 @@ window.MathJax = {
       const n=byId[a.nodeId]; const kindC=a.kind==='q'?'q':'note';
       return `<div class="ann-item ${kindC}">
         <div class="quote">"${esc(a.quote)}"</div>
-        ${a.note?`<div class="txt">${a.kind==='q'?'❓ ':'✏️ '}${esc(a.note)}</div>`:'<div class="txt" class="highlight-label">高亮</div>'}
-        <div class="meta"><span>${n?n.title:a.nodeId}</span><button class="del" data-del="${a.id}">删除</button></div>
+        ${a.note?`<div class="txt">${a.kind==='q'?'❓ ':'✏️ '}${esc(a.note)}</div>`:'<div class="txt highlight-label">高亮</div>'}
+        <div class="meta"><span>${esc(n?n.title:a.nodeId)}</span><button class="del" data-del="${esc(a.id)}">删除</button></div>
       </div>`;
     }).join('');
-    list.querySelectorAll('.del').forEach(d=>d.onclick=()=>{ annotations=annotations.filter(x=>x.id!=d.dataset.del); saveAnn(); renderAnnList(); const cur=document.getElementById('d-body').dataset.nodeId; if(cur)applyAnnotations(cur); });
+    list.querySelectorAll('.del').forEach(d=>d.onclick=()=>{ try { annotationStore.remove(d.dataset.del); } catch { localError(); } });
   }
   document.getElementById('btn-export').onclick=()=>{
     const blob=new Blob([JSON.stringify(annotations,null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='em-kg-annotations.json'; a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='em-kg-annotations.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   };
 
   // ============ search ============
@@ -443,7 +538,7 @@ window.MathJax = {
     const activePanel = annPanel.classList.contains('open') ? annPanel : drawer.classList.contains('open') ? drawer : null;
     // Keep keyboard navigation within the topmost reading panel.
     if(e.key==='Tab' && activePanel){
-      const focusable=[...activePanel.querySelectorAll('button, a[href], input, [tabindex="0"]')].filter(el=>el.getClientRects().length);
+      const focusable=[...activePanel.querySelectorAll('button:not(:disabled), a[href], input, summary, [tabindex="0"]')].filter(el=>el.getClientRects().length);
       const first=focusable[0], last=focusable[focusable.length-1];
       if(e.shiftKey && (document.activeElement===first || !activePanel.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
       else if(!e.shiftKey && (document.activeElement===last || !activePanel.contains(document.activeElement))){ e.preventDefault(); first.focus(); }
@@ -452,7 +547,7 @@ window.MathJax = {
   });
 
   // init
-  renderGuided(); updateAnnCount();
+  renderGuided(); initializeSync(); updateAnnCount();
 })();
 </script>
 </body>

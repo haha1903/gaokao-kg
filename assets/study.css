@@ -161,3 +161,22 @@ main { flex: 1; min-height: 0; position: relative; }
 @media (prefers-reduced-motion: reduce) { #view-guided { scroll-behavior: auto; } }
 
 .highlight-label { color: #896016; }
+
+/* Cloud controls stay inside the notebook, with a compact status in the header. */
+.sync-indicator { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); margin-left: 6px; vertical-align: middle; }
+.sync-indicator[data-status="synced"] { background: #2e7057; }
+.sync-indicator[data-status="pending"] { background: #a37315; }
+.sync-indicator[data-status="syncing"] { background: var(--accent); }
+.sync-box { margin: 20px 24px 8px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.sync-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.sync-heading h3 { font-size: 14px; margin: 0; }
+#sync-status { color: var(--accent); font-size: 11px; }
+.sync-box p { color: var(--dim); font-size: 12px; line-height: 1.85; margin: 10px 0; overflow-wrap: anywhere; }
+.sync-box details { margin-top: 12px; }
+.sync-box summary { font-size: 12px; color: var(--accent); cursor: pointer; padding-block: 12px; }
+.sync-box label { display: block; font-size: 12px; color: var(--dim); margin: 14px 0 8px; }
+.sync-box input { width: 100%; min-width: 0; height: 44px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--ink); font-size: 14px; }
+.sync-actions { display: flex; gap: 8px; margin-top: 8px; }
+.sync-box form > button { margin-top: 10px; }
+.sync-box button:disabled { opacity: .55; cursor: wait; }
+@media (max-width: 620px) { .sync-box { margin-inline: 20px; } .sync-box input { font-size: 16px; } }
