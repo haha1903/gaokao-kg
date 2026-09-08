@@ -1,7 +1,8 @@
 const TOKEN = /^kg1_[A-Za-z0-9_-]{43}$/;
 const ID = /^[A-Za-z0-9_-]{1,80}$/;
 const MAX_RECORDS = 1000;
-const MAX_BODY = 24 * 1024;
+// Allow JSON escaping and multibyte text within the documented character limits.
+const MAX_BODY = 80 * 1024;
 
 class HttpError extends Error {
   constructor(status, code) { super(code); this.status = status; }

@@ -74,7 +74,8 @@ test('validates input, origin, routes and payload size without caching notes', a
     assert.equal((await api('annotations/note-1', { method: 'PUT', body: { ...annotation, ...changed } })).status, 400);
   }
   assert.equal((await api('annotations/note-1', { method: 'PUT', body: '{' })).status, 400);
-  assert.equal((await api('annotations/note-1', { method: 'PUT', body: 'x'.repeat(25000) })).status, 413);
+  assert.equal((await api('annotations/note-1', { method: 'PUT', body: 'x'.repeat(90000) })).status, 413);
+  assert.equal((await put({ ...annotation, quote: '\u5b57'.repeat(4000), note: '\u5b57'.repeat(8000) })).status, 200);
   assert.equal((await api('notebook', { headers: { Origin: 'https://evil.example' } })).status, 403);
   assert.equal((await api('notebook', { headers: { 'Sec-Fetch-Site': 'cross-site' } })).status, 403);
   assert.equal((await api('missing')).status, 404);
