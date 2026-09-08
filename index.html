@@ -9,6 +9,7 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/home.css">
+<script src="assets/home.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">跳到正文</a>
@@ -29,16 +30,23 @@
     </div>
     <figure class="hero-art"><div class="paper-tape" aria-hidden="true"></div><img src="assets/field-notes.svg" width="600" height="580" alt="电磁学手绘笔记：电荷激发电场，电场对电荷施力；运动电荷产生磁场，变化的磁场产生感应电场。"><figcaption><span>Everything is connected.</span><span>学习，从连接开始。</span></figcaption></figure>
   </section>
-  <div class="section-index page-width" aria-label="页面导览"><a href="#subjects"><span>01</span> 学科地图</a><a href="#approach"><span>02</span> 学习方式</a><p>不止于答案，更在于理解。<span aria-hidden="true">↙</span></p></div>
+  <nav class="section-index" aria-label="页面导览"><a href="#subjects"><span>01</span> 学科地图</a><a href="#approach"><span>02</span> 学习方式</a><p>不止于答案，更在于理解。<span aria-hidden="true">↙</span></p></nav>
   <section class="subjects page-width" id="subjects" aria-labelledby="subjects-title">
-    <div class="section-heading"><div><p class="eyebrow">01 / THE KNOWLEDGE ATLAS</p><h2 id="subjects-title">从一个知识点，<br class="mobile-break">走进一整个学科。</h2></div><p>先建立地图，再深入细节。<br>选择一个起点，开始你的探索。</p></div>
-    <a class="subject-feature" href="physics/electromagnetism/">
-      <div class="subject-art" aria-hidden="true"><span class="subject-code">PHYSICS / 01</span><svg viewBox="0 0 380 260" fill="none"><g stroke="currentColor" stroke-width="1.5"><ellipse cx="190" cy="130" rx="112" ry="42" transform="rotate(-30 190 130)"/><ellipse cx="190" cy="130" rx="112" ry="42" transform="rotate(30 190 130)"/><ellipse cx="190" cy="130" rx="112" ry="42" transform="rotate(90 190 130)"/><circle cx="190" cy="130" r="9" fill="currentColor"/><circle cx="286" cy="76" r="6" fill="#edf0f8"/><circle cx="94" cy="76" r="6" fill="#edf0f8"/><circle cx="190" cy="242" r="5" fill="currentColor"/></g></svg><span class="formula">F = qE <i>·</i> ε = −n ΔΦ / Δt</span></div>
+    <div class="section-heading" data-reveal><div><p class="eyebrow">01 / THE KNOWLEDGE ATLAS</p><h2 id="subjects-title">从一个知识点，<br class="mobile-break">走进一整个学科。</h2></div><p>先建立地图，再深入细节。<br>选择一个起点，开始你的探索。</p></div>
+    <a data-reveal class="subject-feature" href="physics/electromagnetism/">
+      <div class="subject-art" aria-hidden="true"><span class="subject-code">PHYSICS / 01</span><svg viewBox="0 0 380 260" fill="none"><g stroke="currentColor" stroke-width="1.5"><ellipse pathLength="1" cx="190" cy="130" rx="112" ry="42" transform="rotate(-30 190 130)"/><ellipse pathLength="1" cx="190" cy="130" rx="112" ry="42" transform="rotate(30 190 130)"/><ellipse pathLength="1" cx="190" cy="130" rx="112" ry="42" transform="rotate(90 190 130)"/><circle cx="190" cy="130" r="9" fill="currentColor"/><circle cx="286" cy="76" r="6" fill="#edf0f8"/><circle cx="94" cy="76" r="6" fill="#edf0f8"/><circle cx="190" cy="242" r="5" fill="currentColor"/></g></svg><span class="formula">F = qE <i>·</i> ε = −n ΔΦ / Δt</span></div>
       <div class="subject-content"><div class="subject-topline"><span class="eyebrow">物理 · PHYSICS</span><span class="availability"><span class="status-dot"></span> 已开放</span></div><h3>电磁学</h3><p>从电荷与场出发，走过力与能量，<br>看见电与磁如何连成一个整体。</p><div class="topic-tags"><span>电场</span><span>磁场</span><span>电磁感应</span></div><div class="subject-bottom"><span>25 个知识点 <i>/</i> 基础 → 拓展</span><strong>进入图谱 <span aria-hidden="true">↗</span></strong></div></div>
     </a>
-    <div class="upcoming-subjects"><article class="upcoming"><span class="subject-number">02</span><div><h3>数学 <span>MATH</span></h3><p>集合、函数、数列、圆锥曲线……从定义走向推导。</p></div><span class="coming-label">筹备中</span></article><article class="upcoming"><span class="subject-number">03</span><div><h3>化学 <span>CHEMISTRY</span></h3><p>下一张知识地图，正在酝酿。</p></div><span class="coming-label">筹备中</span></article></div>
+    <div class="upcoming-subjects"><article class="upcoming" data-reveal><span class="subject-number">02</span><div><h3>数学 <span>MATH</span></h3><p>集合、函数、数列、圆锥曲线……从定义走向推导。</p></div><span class="coming-label">筹备中</span></article><article class="upcoming" data-reveal><span class="subject-number">03</span><div><h3>化学 <span>CHEMISTRY</span></h3><p>下一张知识地图，正在酝酿。</p></div><span class="coming-label">筹备中</span></article></div>
   </section>
-  <section class="approach" id="approach" aria-labelledby="approach-title"><div class="page-width approach-inner"><div class="approach-heading"><p class="eyebrow">02 / MAKE IT CLICK</p><h2 id="approach-title">学懂，<br>然后串起来。</h2><p>知识不是孤立的卡片。<br>找到它们之间的联系，<br>才是理解真正发生的地方。</p><span class="hand-note">Follow your curiosity ↗</span></div><ol class="learning-steps"><li><span class="step-number">01</span><div><h3>顺着脉络，打好基础</h3><p>跟随「基本概念 → 电场 → 磁场 → 电磁感应」的分层路径，从起点一步步向前。</p></div><span class="step-label">分层引导</span></li><li><span class="step-number">02</span><div><h3>换个视角，看见联系</h3><p>切换到关系图谱，探索知识点之间的定义、推导与应用。一个公式，也是通向另一个知识点的路。</p></div><span class="step-label">关系图谱</span></li><li><span class="step-number">03</span><div><h3>深入一点，留下思考</h3><p>展开知识卡片阅读公式与推导，区分高考主干和拓展内容。选中文字，记下你的理解与疑问。</p></div><span class="step-label">深度阅读</span></li></ol></div></section>
+  <section class="approach" id="approach" aria-labelledby="approach-title"><div class="page-width approach-inner"><div class="approach-heading" data-reveal><p class="eyebrow">02 / MAKE IT CLICK</p><h2 id="approach-title">学懂，<br>然后串起来。</h2><p>知识不是孤立的卡片。<br>找到它们之间的联系，<br>才是理解真正发生的地方。</p><svg class="connection-map" viewBox="0 0 336 190" fill="none" aria-hidden="true">
+  <g class="connection-guides"><path d="M68 125C63 58 93 42 144 48"/><path d="M191 48C253 36 284 68 272 125"/><path d="M248 151C181 181 121 166 89 151"/></g>
+  <g class="connection-lines"><path pathLength="1" d="M68 125C63 58 93 42 144 48"/><path pathLength="1" d="M191 48C253 36 284 68 272 125"/><path pathLength="1" d="M248 151C181 181 121 166 89 151"/></g>
+  <g class="connection-node"><circle cx="68" cy="142" r="27"/><text x="68" y="147">基础</text></g>
+  <g class="connection-node"><circle cx="168" cy="48" r="27"/><text x="168" y="53">联系</text></g>
+  <g class="connection-node"><circle cx="270" cy="142" r="27"/><text x="270" y="147">思考</text></g>
+  <g class="connection-spark"><path d="M155 123h12m-6-6v12M305 59h10m-5-5v10M29 64h8m-4-4v8"/></g>
+</svg><span class="hand-note">Follow your curiosity ↗</span></div><ol class="learning-steps"><li data-reveal><span class="step-number">01</span><div><h3>顺着脉络，打好基础</h3><p>跟随「基本概念 → 电场 → 磁场 → 电磁感应」的分层路径，从起点一步步向前。</p></div><span class="step-label">分层引导</span></li><li data-reveal><span class="step-number">02</span><div><h3>换个视角，看见联系</h3><p>切换到关系图谱，探索知识点之间的定义、推导与应用。一个公式，也是通向另一个知识点的路。</p></div><span class="step-label">关系图谱</span></li><li data-reveal><span class="step-number">03</span><div><h3>深入一点，留下思考</h3><p>展开知识卡片阅读公式与推导，区分高考主干和拓展内容。选中文字，记下你的理解与疑问。</p></div><span class="step-label">深度阅读</span></li></ol></div></section>
 </main>
 <footer class="site-footer page-width"><div><a class="footer-title" href="./">上海高考知识图谱<span aria-hidden="true">↗</span></a><p>一份持续生长的个人学习地图。</p></div><div class="footer-right"><p>内容基于上海高考历年真题整理</p><a href="https://github.com/haha1903/gaokao-kg">GitHub ↗</a><span>保持好奇，慢慢弄懂。</span></div></footer>
 </body>
